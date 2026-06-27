@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.taut"
-version = "0.1.0"
+version = "1.0.0"
 
 val ktorVersion = "2.3.13"
 val grpcVersion = "1.62.2"
