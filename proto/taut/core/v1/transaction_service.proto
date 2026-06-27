@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+import "taut/core/v1/models.proto";
+
+// ──── Transaction Service ────
+//
+// CRUD operations for waste transactions.
+// Supports both online creation and offline-synced transactions.
+// All monetary values in satuan rupiah (cents).
+
+service TransactionService {
+  // Create a transaction (online path).
+  // Device may also create transactions offline and sync via SyncService.
+  rpc CreateTransaction(CreateTransactionRequest) returns (Transaction);
+
+  // Get a single transaction by ID, including all line items.
+  rpc GetTransaction(GetTransactionRequest) returns (Transaction);
+
+  // List transactions for a waste bank with filtering and pagination.
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+
+  // Void a transaction (creates a compensating ledger entry).
+  // Only available to admins and primary operators.
+  rpc VoidTransaction(VoidTransactionRequest) returns (Transaction);
+
+  // Get transaction history for a specific customer (nasabah).
+  rpc ListCustomerTransactions(ListCustomerTransactionsRequest) returns (ListTransactionsResponse);
+}
+
+// ──── Messages ────
+
+// Request to create a new transaction.
+message CreateTransactionRequest {
+  Transaction transaction = 1;
+  string idempotency_key = 2;            // UUIDv7 — client-generated for deduplication
+}
+
+// Request to fetch a single transaction.
+message GetTransactionRequest {
+  Uuid id = 1;
+}
+
+// Request to list transactions with filters.
+message ListTransactionsRequest {
+  Uuid bank_sampah_id = 1;
+  Timestamp from_date = 2;
+  Timestamp to_date = 3;
+  TransactionType transaction_type = 4;
+  SyncStatus status = 5;
+  Pagination pagination = 6;
+}
+
+// Paginated transaction list response.
+message ListTransactionsResponse {
+  repeated Transaction transactions = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+// Request to void an existing transaction.
+message VoidTransactionRequest {
+  Uuid transaction_id = 1;
+  string reason = 2;                    // Required: reason for voiding
+  Uuid admin_id = 3;
+  string idempotency_key = 4;
+}
+
+// Request to fetch a customer's transaction history.
+message ListCustomerTransactionsRequest {
+  Uuid customer_id = 1;
+  Pagination pagination = 2;
+}

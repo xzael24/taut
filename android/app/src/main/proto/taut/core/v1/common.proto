@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+// ──── Wrappers ────
+
+// UUID wrapper for consistent handling across all messages.
+// Uses UUIDv7 format: 018e0000-0000-7000-b000-000000000000
+message Uuid {
+  string value = 1;
+}
+
+// Timestamp wrapper (always UTC).
+// Represents an instant on the global timeline.
+message Timestamp {
+  int64 seconds = 1;         // Unix seconds since epoch
+  int32 nanos = 2;           // Nanosecond component (0–999,999,999)
+}
+
+// ──── Monetary & Weight ────
+
+// Money value — integer only, NO FLOATING POINT.
+// All financial values are in satuan rupiah (cents).
+// Example: Rp 7.500 → satuan = 750000
+message Money {
+  int64 satuan = 1;          // Value in satuan rupiah (cents). Always positive.
+  string currency = 2;       // ISO 4217: "IDR"
+}
+
+// Weight value — integer grams only.
+// Example: 5 kg → grams = 5000
+message Weight {
+  int64 grams = 1;           // Weight in grams. Integer only.
+}
+
+// ──── Pagination ────
+
+message Pagination {
+  int32 page = 1;
+  int32 page_size = 2;       // Default: 20, Max: 100
+  string cursor = 3;         // Cursor-based pagination (UUIDv7)
+}
+
+message PaginatedResponse {
+  repeated string items = 1;
+  string next_cursor = 2;
+  int32 total_count = 3;
+}
+
+// ──── Enums ────
+
+// Sync status for offline-first transactions.
+enum SyncStatus {
+  SYNC_STATUS_UNSPECIFIED = 0;
+  PENDING_SYNC = 1;           // Created offline, not yet sent to server
+  SYNCING = 2;                // Currently being sent
+  SYNCED = 3;                 // Successfully synced to server
+  CONFIRMED = 4;              // Server has confirmed the transaction
+  FAILED = 5;                 // Sync failed (retryable)
+}
+
+// Transaction type.
+enum TransactionType {
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  DEPOSIT = 1;                // Nasabah deposits recyclables
+  REDEMPTION = 2;             // Nasabah redeems points/cash
+}
+
+// User roles in the system.
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  OPERATOR = 1;               // Bank sampah operator
+  CUSTOMER = 2;               // Nasabah (customer)
+  DLH_STAFF = 3;              // Dinas Lingkungan Hidup staff
+  ADMIN = 4;                  // System administrator
+  SUPERADMIN = 5;             // Super administrator
+}
+
+// ──── Common Error ────
+
+// Standard error response for both gRPC and REST.
+message Error {
+  string code = 1;           // Machine-readable: "INVALID_ARGUMENT", "DUPLICATE_ENTRY", etc.
+  string message = 2;        // Human-readable in Bahasa Indonesia
+  string detail = 3;         // Developer-facing detail (optional)
+  string request_id = 4;     // Correlation ID for support tracing
+}
+
+// Empty message for RPCs with no request parameters.
+message Empty {}

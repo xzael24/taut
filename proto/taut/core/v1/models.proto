@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+
+// ──── Waste Bank ────
+
+// A registered waste bank (Bank Sampah) unit.
+message WasteBank {
+  Uuid id = 1;
+  string code = 2;                       // BSA-XXXX
+  string name = 3;
+  string phone = 4;
+  string address = 5;
+  int32 village_id = 6;
+  string device_pub_key = 7;             // Ed25519 public key of primary device
+  bool is_active = 8;
+  Timestamp created_at = 9;
+  Timestamp updated_at = 10;
+}
+
+// ──── User ────
+
+// A user of the TAUT system — can be operator, customer, or admin.
+message User {
+  Uuid id = 1;
+  string phone_number = 2;
+  UserRole role = 3;
+  string name = 4;
+  int32 village_id = 5;
+  string kyc_status = 6;                // unverified, pending, verified, rejected
+  bool is_active = 7;
+  Timestamp created_at = 8;
+  Timestamp updated_at = 9;
+}
+
+// ──── Operator Profile ────
+
+// Links a User to a Waste Bank as an operator.
+message OperatorProfile {
+  Uuid id = 1;
+  Uuid bank_sampah_id = 2;
+  Uuid user_id = 3;
+  bool is_primary = 4;                  // Primary operator flag
+  bool is_active = 5;
+  Timestamp created_at = 6;
+}
+
+// ──── Device ────
+
+// A registered device attached to a waste bank.
+message Device {
+  Uuid id = 1;
+  Uuid bank_sampah_id = 2;
+  string device_name = 3;               // Human-readable label
+  string device_phone_number = 4;       // Phone number for SMS alerts
+  string device_pub_key = 5;            // Ed25519 public key for device auth
+  string device_fingerprint = 6;        // SHA-256 of device attestation
+  string app_version = 7;               // Installed app version
+  bool is_active = 8;
+  Timestamp registered_at = 9;
+  Timestamp last_seen_at = 10;
+  Timestamp created_at = 11;
+  Timestamp updated_at = 12;
+}
+
+// ──── Waste Category ────
+
+// A category of recyclable waste with current unit price.
+message WasteCategory {
+  Uuid id = 1;
+  string code = 2;                       // KRD-01, PLT-01, etc.
+  string name_id = 3;                    // Bahasa Indonesia name
+  string name_en = 4;                    // English name (optional)
+  string category_group = 5;            // kardus, plastik, kaca, logam, kertas, elektronik, lainnya
+  string unit_type = 6;                 // kg, pcs, liter
+  int64 unit_price = 7;                 // Price per kg in satuan rupiah (cents)
+  string photo_url = 8;                 // Remote photo URL
+  int32 sort_order = 9;                 // Display sort order
+  bool is_active = 10;
+  Timestamp created_at = 11;
+  Timestamp updated_at = 12;
+}
+
+// ──── Transaction ────
+
+// A single line item within a transaction — one per waste category.
+message TransactionItem {
+  Uuid id = 1;
+  Uuid category_id = 2;                 // Waste category reference
+  int64 weight_grams = 3;               // Weight in grams
+  int64 price_per_unit = 4;             // Price locked at transaction time (satuan/kg)
+  int64 total_value = 5;                // Computed: (weight_grams / 1000) * price_per_unit
+}
+
+// A waste deposit or redemption transaction.
+// Designed for offline-first creation — UUID is client-generated.
+message Transaction {
+  Uuid id = 1;                           // UUIDv7 (client-generated)
+  Uuid bank_sampah_id = 2;
+  Uuid operator_id = 3;
+  Uuid customer_id = 4;
+  TransactionType transaction_type = 5;
+  SyncStatus status = 6;
+  int64 total_weight_grams = 7;          // Sum of all items
+  Money total_value = 8;                 // Sum of all item values
+  Timestamp device_timestamp = 9;        // Time on device when created
+  Timestamp server_timestamp = 10;       // Time on server when received
+  Uuid sync_id = 11;                     // Batch sync identifier
+  bool is_offline_created = 12;          // True if created without connectivity
+  int64 lamport_timestamp = 13;          // Lamport clock for conflict resolution
+  string hmac_signature = 14;            // HMAC of transaction fields
+  string price_snapshot = 15;            // JSON string: {"KRD-01": 1500, ...}
+  string weight_photo_url = 16;          // Photo of the scale display
+  bool sms_sent = 17;                    // Whether SMS notification was sent
+  repeated TransactionItem items = 18;   // Line items
+  Timestamp created_at = 19;
+  Timestamp updated_at = 20;
+}
+
+// ──── Price Reference ────
+
+// A historical or current price quote for a waste category in a region.
+message PriceReference {
+  Uuid id = 1;
+  Uuid category_id = 2;
+  int32 region_id = 3;
+  string region_type = 4;               // national, kota, kecamatan
+  string source = 5;                    // admin, pengepul, system
+  int64 price_per_unit = 6;             // Satuan rupiah per kg
+  Timestamp effective_from = 7;
+  Timestamp effective_to = 8;
+  int32 version = 9;
+  bool is_current = 10;
+}
+
+// ──── Sync Models ────
+
+// Metadata attached to every sync session.
+message SyncMetadata {
+  string device_id = 1;
+  Uuid bank_sampah_id = 2;
+  int64 lamport_timestamp = 3;
+  string last_sync_cursor = 4;          // UUIDv7 watermark for incremental sync
+  string app_version = 5;
+}
+
+// A batch of transactions pushed during sync.
+message SyncBatch {
+  SyncMetadata metadata = 1;
+  repeated Transaction transactions = 2;
+  map<string, int64> counter_deltas = 3; // CRDT counters (points)
+}
+
+// Acknowledgment entry for a single transaction in a sync batch.
+message AckEntry {
+  Uuid local_id = 1;                    // Client-generated UUID
+  Uuid server_id = 2;                   // Server-assigned UUIDv7
+  SyncStatus status = 3;
+  string error_message = 4;
+}
+
+// Response from the sync server.
+message SyncResponse {
+  repeated AckEntry acks = 1;
+  repeated WasteCategory catalog_updates = 2;
+  int32 catalog_version = 3;
+  map<string, int64> counter_updates = 4;
+  int64 new_lamport_timestamp = 5;
+  string new_cursor = 6;
+  Timestamp server_time = 7;            // For clock drift estimation
+}
+
+// ──── SMS ────
+
+// An SMS message sent to a nasabah.
+message SmsMessage {
+  Uuid id = 1;
+  string phone_to = 2;
+  string message = 3;                   // Less than 160 characters
+  string status = 4;                    // pending, sent, failed, bounced
+  string provider = 5;
+  int64 cost = 6;
+}
+
+// ──── Ledger ────
+
+// A single entry in the double-entry ledger.
+message LedgerEntry {
+  Uuid id = 1;
+  Uuid account_id = 2;
+  string entry_type = 3;               // debit, credit
+  int64 amount = 4;                     // Always positive
+  int64 balance_after = 5;
+  string reference_type = 6;
+  Uuid reference_id = 7;
+  string reason_code = 8;
+  Timestamp created_at = 9;
+}
+
+// ──── Dashboard Aggregates ────
+
+// Daily rollup statistics for a waste bank.
+message DailyRollup {
+  string day = 1;                       // ISO date string
+  Uuid bank_sampah_id = 2;
+  Uuid category_id = 3;
+  int32 transaction_count = 4;
+  int32 unique_customers = 5;
+  int64 total_weight_grams = 6;
+  int64 total_value_satuan = 7;
+}
+
+// Weekly rollup aggregated at the kecamatan level.
+message WeeklyKecamatanRollup {
+  string week = 1;
+  int32 kecamatan_id = 2;
+  Uuid category_id = 3;
+  int64 total_weight_grams = 4;
+  int64 total_value_satuan = 5;
+  int32 active_banks = 6;
+}

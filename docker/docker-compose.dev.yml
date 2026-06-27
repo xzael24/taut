@@ -1,0 +1,68 @@
+# ==============================================================================
+# docker-compose.dev.yml - Local development environment for TAUT
+# Use together: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+# ==============================================================================
+
+services:
+  # ── PostgreSQL 16 ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taut-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+  # ── Redis for queue (dev only) ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: taut-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  # ── Adminer for DB management ──────────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: taut-adminer-dev
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── TAUT Backend (hot reload) ─────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: taut-backend-dev
+    restart: unless-stopped
+    command: >
+      sh -c "./gradlew --no-daemon --continuous run"
+    environment:
+      TAUT_HOST: "0.0.0.0"
+      TAUT_PORT: "9000"
+      TAUT_DB_URL: "jdbc:postgresql://postgres:5432/taut"
+      TAUT_DB_USER: taut
+      TAUT_DB_PASSWORD: taut
+      TAUT_JWT_SECRET: "dev-secret-do-not-use-in-production"
+      JAVA_OPTS: "-Xmx512m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    ports:
+      - "9000:9000"
+      - "5005:5005"
+    volumes:
+      - ../backend/src:/app/src
+      - ../backend/build.gradle.kts:/app/build.gradle.kts
+      - ../backend/settings.gradle.kts:/app/settings.gradle.kts
+      - gradle-cache:/home/gradle/.gradle
+    tmpfs:
+      - /app/build
+
+volumes:
+  pgdata:
+  gradle-cache:

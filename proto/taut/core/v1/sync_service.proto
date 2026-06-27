@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+import "taut/core/v1/models.proto";
+
+// ──── Sync Service ────
+//
+// Bidirectional streaming sync for offline-first mobile operation.
+// Also provides unary endpoints for sync status checks and admin overrides.
+//
+// Stream Contract:
+//   1. Client opens stream with SyncBatch (metadata only, empty transactions)
+//   2. Server responds with SyncResponse (catalog updates, server time)
+//   3. Client sends one or more SyncBatch messages with transactions
+//   4. Server acks each batch with SyncResponse
+//   5. Server may push catalog/price updates anytime via SyncResponse
+//   6. Client closes stream when done
+//   7. Server closes stream
+
+service SyncService {
+  // Bidirectional streaming sync — the primary sync channel.
+  rpc Sync(stream SyncBatch) returns (stream SyncResponse);
+
+  // One-shot sync for small payloads or initial connection.
+  rpc SyncUnary(SyncBatch) returns (SyncResponse);
+
+  // Get current sync status for a device.
+  rpc GetSyncStatus(SyncStatusRequest) returns (SyncStatusResponse);
+
+  // Force-push a specific transaction (admin/operator override).
+  rpc PushTransaction(Transaction) returns (AckEntry);
+}
+
+// ──── Messages ────
+
+// Request to check sync status for a device.
+message SyncStatusRequest {
+  string device_id = 1;
+}
+
+// Current sync status response.
+message SyncStatusResponse {
+  int64 last_lamport_timestamp = 1;
+  string last_cursor = 2;
+  Timestamp last_sync_at = 3;
+  int32 pending_count = 4;              // Transactions pending sync
+  int32 failed_count = 5;              // Transactions in failed state
+}

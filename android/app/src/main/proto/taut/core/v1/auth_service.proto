@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+import "taut/core/v1/models.proto";
+
+// ──── Auth Service ────
+//
+// Authentication and device registration for TAUT mobile app.
+// Uses OTP-based phone verification with Ed25519 device key binding.
+//
+// Flow:
+//   1. RequestOtp → SMS with 6-digit code
+//   2. VerifyOtp → JWT access token + refresh token
+//   3. Set PIN (first-time) for daily local auth
+//   4. Register device public key for HMAC-signed requests
+
+service AuthService {
+  // Request an SMS OTP for phone number verification.
+  rpc RequestOtp(RequestOtpRequest) returns (RequestOtpResponse);
+
+  // Verify the OTP code and get JWT tokens.
+  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse);
+
+  // Refresh an expired access token.
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // Change the operator's 4-digit PIN.
+  rpc ChangePin(ChangePinRequest) returns (ChangePinResponse);
+
+  // Verify the operator's PIN (server-side, for device recovery).
+  rpc VerifyPin(VerifyPinRequest) returns (VerifyPinResponse);
+
+  // Register a new device and bind its public key.
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+}
+
+// ──── Messages ────
+
+// Request an OTP sent via SMS to the given phone number.
+message RequestOtpRequest {
+  string phone_number = 1;              // e.g., "08123456789"
+  string device_id = 2;
+}
+
+// Response containing OTP session information.
+message RequestOtpResponse {
+  string session_id = 1;                // UUID for this OTP session
+  int32 expires_seconds = 2;            // OTP expires in 300s (5 min)
+  string masked_phone = 3;             // "0812****789" for display-only
+}
+
+// Verify the OTP code from the user's SMS.
+message VerifyOtpRequest {
+  string session_id = 1;
+  string otp_code = 2;                  // 6-digit code
+  string device_id = 3;
+  string device_pub_key = 4;            // Ed25519 public key for this device
+}
+
+// Tokens and user info returned after successful OTP verification.
+message VerifyOtpResponse {
+  string access_token = 1;              // JWT, 15 min expiry
+  string refresh_token = 2;             // Opaque token, 30 day expiry
+  int32 access_expires_in = 3;         // seconds
+  int32 refresh_expires_in = 4;        // seconds
+  User user = 5;                        // Existing or newly created user
+  bool is_new_user = 6;                // true = first time setup (show PIN setup)
+}
+
+// Request a new access token using a refresh token.
+message RefreshTokenRequest {
+  string refresh_token = 1;
+  string device_id = 2;
+  string device_signature = 3;          // HMAC of refresh_token with device key
+}
+
+// New access token response.
+message RefreshTokenResponse {
+  string access_token = 1;
+  int32 expires_in = 2;
+}
+
+// Change the operator's PIN code.
+message ChangePinRequest {
+  string old_pin = 1;                   // Empty string for first-time setup
+  string new_pin = 2;                   // 4-digit, hashed with bcrypt server-side
+  string idempotency_key = 3;
+}
+
+message ChangePinResponse {
+  bool success = 1;
+}
+
+// Verify the operator's PIN (server-side, for device recovery).
+message VerifyPinRequest {
+  Uuid user_id = 1;
+  string pin = 2;
+}
+
+message VerifyPinResponse {
+  bool valid = 1;
+  int32 remaining_attempts = 2;         // 10 − failed attempts; 0 = locked
+}
+
+// Register a new device with the server.
+message RegisterDeviceRequest {
+  Uuid bank_sampah_id = 1;
+  string device_name = 2;
+  string device_phone_number = 3;
+  string device_pub_key = 4;            // Ed25519 public key
+  string device_fingerprint = 5;        // SHA-256 of device attestation
+}
+
+message RegisterDeviceResponse {
+  Uuid device_id = 1;
+  string device_secret = 2;             // Encrypted with device_pub_key
+}

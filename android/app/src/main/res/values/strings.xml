@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">TAUT</string>
+
+    <!-- Splash -->
+    <string name="splash_loading">Memuat...</string>
+
+    <!-- Auth / PIN -->
+    <string name="pin_title">Masukkan PIN</string>
+    <string name="pin_subtitle">Gunakan PIN operator</string>
+    <string name="pin_incorrect">PIN salah</string>
+
+    <!-- Home -->
+    <string name="home_title">Bank Sampah Melati</string>
+    <string name="home_greeting">Selamat pagi</string>
+    <string name="tile_timbang">Timbang</string>
+    <string name="tile_harga">Harga</string>
+    <string name="tile_riwayat">Riwayat</string>
+    <string name="tile_atur">Atur</string>
+
+    <!-- Weigh / Transaction Flow -->
+    <string name="weigh_title">Timbang Barang</string>
+    <string name="weigh_nasabah_label">Nama Nasabah</string>
+    <string name="weigh_nasabah_placeholder">Ketik atau pilih nama...</string>
+    <string name="weigh_photo_label">Foto Barang (opsional)</string>
+    <string name="weigh_photo_hint">Tap untuk foto</string>
+    <string name="weigh_photo_required">(wajib jika berat > 10 kg)</string>
+    <string name="weigh_weight_label">Berat (kg)</string>
+
+    <string name="category_title">Pilih Jenis Sampah</string>
+    <string name="category_search">Cari kategori...</string>
+
+    <string name="confirm_title">Konfirmasi Setoran</string>
+    <string name="confirm_nasabah">Nasabah</string>
+    <string name="confirm_category">Jenis</string>
+    <string name="confirm_weight">Berat</string>
+    <string name="confirm_price">Harga</string>
+    <string name="confirm_total">Total</string>
+
+    <!-- Buttons -->
+    <string name="btn_back">← Kembali</string>
+    <string name="btn_continue">Lanjut →</string>
+    <string name="btn_save">✅ Simpan</string>
+    <string name="btn_timbang_lagi">⚖️ Timbang Lagi</string>
+    <string name="btn_ke_beranda">Ke Beranda</string>
+
+    <!-- Transaction Saved -->
+    <string name="saved_title">Transaksi Tersimpan!</string>
+    <string name="saved_sms_sent">SMS terkirim ke nomor nasabah</string>
+    <string name="saved_sms_queued">Akan dikirim saat online</string>
+
+    <!-- Price List -->
+    <string name="price_title">Harga Sampah</string>
+    <string name="price_last_updated">Terakhir diperbarui: </string>
+
+    <!-- History -->
+    <string name="history_title">Riwayat Hari Ini</string>
+    <string name="history_summary">Total: 0 transaksi | 0 kg | Rp0</string>
+    <string name="tab_hari_ini">Hari Ini</string>
+    <string name="tab_minggu_ini">Minggu Ini</string>
+    <string name="tab_bulan_ini">Bulan Ini</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Atur</string>
+    <string name="settings_version">Versi aplikasi: 0.1.0-alpha</string>
+
+    <!-- Status / Sync -->
+    <string name="status_synced">Tersinkronisasi</string>
+    <string name="status_pending">Menunggu sinkronisasi</string>
+    <string name="status_syncing">Sedang sinkronisasi...</string>
+    <string name="status_failed">Sinkronisasi gagal</string>
+    <string name="status_offline">Offline</string>
+
+    <!-- Errors -->
+    <string name="error_required_field">Kolom ini wajib diisi</string>
+    <string name="error_invalid_weight">Berat harus lebih dari 0</string>
+    <string name="error_photo_required">Foto wajib untuk berat > 10 kg</string>
+    <string name="error_sync_failed">Sinkronisasi gagal. Coba lagi nanti.</string>
+    <string name="error_no_connection">Tidak ada koneksi internet</string>
+</resources>

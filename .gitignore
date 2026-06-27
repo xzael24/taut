@@ -1,0 +1,149 @@
+# ─── Android / Kotlin ───────────────────────────────────────────
+*.class
+*.jar
+*.aar
+*.war
+*.nar
+*.ear
+*.dex
+*.apk
+*.aab
+*.ap_
+*.aab_
+*.dexoutput
+*.pro
+*.hprof
+*.DS_Store
+local.properties
+*.iml
+.idea/
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.log
+*.trace
+*.hprof
+lint/intermediates/
+lint/reports/
+
+# ─── Gradle ─────────────────────────────────────────────────────
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+/gradle/local.properties
+/gradle/.gradle
+gradle/verification-metadata.xml
+
+# ─── IDE (IntelliJ / Android Studio) ────────────────────────────
+.idea/*
+!.idea/runConfigurations/
+!.idea/codestyles/
+!.idea/copyright/
+*.iws
+*.ipr
+*.iml
+out/
+.nav/
+.nb-gradle/
+*.swp
+*.swo
+*~
+
+# ─── Kotlin ─────────────────────────────────────────────────────
+*.kotlin_module
+.kotlin/
+
+# ─── VS Code ────────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ─── macOS ──────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+.Trash-*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─── Protobuf ───────────────────────────────────────────────────
+*generated*
+*_pb2.py
+*_pb2.pyi
+*_pb2_grpc.py
+*_pb.js
+*_grpc_pb.js
+
+# ─── Secrets / Environment ──────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+secrets/
+credentials/
+service-account.json
+google-services.json
+firebase.json
+GoogleService-Info.plist
+
+# ─── Docker / K8s ──────────────────────────────────────────────
+docker-compose.override.yml
+*.local.yml
+.kube/
+helm/secrets/
+
+# ─── Node / Web Dashboard (if present) ──────────────────────────
+node_modules/
+dist/
+build/
+.npm/
+.yarn/
+.cache/
+.eslintcache
+
+# ─── Python (for scripts/tools) ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Docs / Build artifacts ────────────────────────────────────
+*.pdf
+*.epub
+*.swp
+site/
+public/
+
+# ─── Terraform ──────────────────────────────────────────────────
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+
+# ─── Misc ───────────────────────────────────────────────────────
+*.bak
+*.orig
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+desktop.ini

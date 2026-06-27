@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+import "taut/core/v1/models.proto";
+
+// ──── Catalog Service ────
+//
+// Waste category catalog and price reference service.
+// Used by the mobile app to get current prices and categories.
+// Supports versioned delta sync for efficient updates.
+
+service CatalogService {
+  // Get all active waste categories.
+  rpc ListCategories(Empty) returns (ListCategoriesResponse);
+
+  // Get current price catalog with optional region filter and delta sync.
+  rpc GetPriceCatalog(PriceCatalogRequest) returns (PriceCatalogResponse);
+
+  // Get price history for a specific waste category.
+  rpc GetPriceHistory(PriceHistoryRequest) returns (PriceHistoryResponse);
+}
+
+// ──── Messages ────
+
+// Response containing all active waste categories.
+message ListCategoriesResponse {
+  repeated WasteCategory categories = 1;
+  int32 version = 2;                    // Catalog version for delta sync
+}
+
+// Request for current prices with optional region and version filter.
+message PriceCatalogRequest {
+  int32 region_id = 1;                  // 0 or unset = national
+  int32 last_version = 2;              // For delta: only send changes since this version
+}
+
+// Response with current price references.
+message PriceCatalogResponse {
+  repeated PriceReference prices = 1;
+  int32 version = 2;
+  Timestamp effective_at = 3;
+}
+
+// Request for historical prices of a specific category.
+message PriceHistoryRequest {
+  Uuid category_id = 1;
+  int32 region_id = 2;
+  Timestamp from_date = 3;
+  Timestamp to_date = 4;
+  Pagination pagination = 5;
+}
+
+// Response with price history entries.
+message PriceHistoryResponse {
+  repeated PriceReference prices = 1;
+  string next_cursor = 2;
+}

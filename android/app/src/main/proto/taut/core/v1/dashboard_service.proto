@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package taut.core.v1;
+
+option java_package = "com.taut.core.v1";
+option java_multiple_files = true;
+
+import "taut/core/v1/common.proto";
+import "taut/core/v1/models.proto";
+
+// ──── Dashboard Service ────
+//
+// Aggregated statistics for the web dashboard.
+// Provides operator-level and DLH (kecamatan)-level views.
+// All monetary values in satuan rupiah (cents).
+
+service DashboardService {
+  // Operator dashboard: daily/weekly/monthly stats for a waste bank.
+  rpc GetOperatorDashboard(OperatorDashboardRequest) returns (OperatorDashboardResponse);
+
+  // DLH dashboard: aggregated data per kecamatan in a kota.
+  rpc GetKecamatanDashboard(KecamatanDashboardRequest) returns (KecamatanDashboardResponse);
+
+  // Generate a monthly report PDF URL.
+  rpc GenerateMonthlyReport(MonthlyReportRequest) returns (MonthlyReportResponse);
+}
+
+// ──── Messages ────
+
+// Request for operator dashboard data.
+message OperatorDashboardRequest {
+  Uuid bank_sampah_id = 1;
+  string period = 2;                    // 'today', 'this_week', 'this_month', 'custom'
+  Timestamp from_date = 3;
+  Timestamp to_date = 4;
+}
+
+// Operator dashboard response with aggregated stats.
+message OperatorDashboardResponse {
+  int64 total_weight_grams = 1;
+  int64 total_value_satuan = 2;
+  int32 transaction_count = 3;
+  int32 unique_customers = 4;
+  repeated CategoryBreakdown category_breakdown = 5;
+  repeated DailyTrend daily_trend = 6;     // Last 30 days
+}
+
+// Breakdown by waste category.
+message CategoryBreakdown {
+  Uuid category_id = 1;
+  string category_name = 2;
+  int64 weight_grams = 3;
+  int64 value_satuan = 4;
+  float percentage = 5;                // Display only — not used in financial logic
+}
+
+// Daily trend data point.
+message DailyTrend {
+  string date = 1;
+  int64 weight_grams = 2;
+  int64 value_satuan = 3;
+  int32 transaction_count = 4;
+}
+
+// Request for DLH (kecamatan-level) dashboard.
+message KecamatanDashboardRequest {
+  int32 kota_id = 1;                    // DLH user's kota
+  Timestamp from_date = 2;
+  Timestamp to_date = 3;
+}
+
+// DLH dashboard response with per-kecamatan rollups.
+message KecamatanDashboardResponse {
+  repeated KecamatanRollup kecamatans = 1;
+  Summary totals = 2;
+}
+
+// Rollup data for a single kecamatan.
+message KecamatanRollup {
+  int32 kecamatan_id = 1;
+  string kecamatan_name = 2;
+  int64 total_weight_grams = 3;
+  int32 active_banks = 4;
+  int64 recycling_rate = 5;            // % diverted from TPA (placeholder)
+}
+
+// Summary totals for the entire kota.
+message Summary {
+  int64 total_weight_grams = 1;
+  int64 total_value_satuan = 2;
+  int32 total_transactions = 3;
+  int32 active_banks = 4;
+  int32 active_customers = 5;
+}
+
+// Request to generate a monthly report PDF.
+message MonthlyReportRequest {
+  Uuid bank_sampah_id = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+// Response containing a pre-signed URL to the PDF report.
+message MonthlyReportResponse {
+  string report_url = 1;                // Pre-signed GCS URL to PDF
+  Timestamp generated_at = 2;
+}

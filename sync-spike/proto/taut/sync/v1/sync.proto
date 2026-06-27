@@ -1,0 +1,25 @@
+syntax = "proto3";
+package taut.sync.v1;
+
+option java_package = "taut.sync.v1";
+option java_multiple_files = true;
+
+import "taut/sync/v1/models.proto";
+
+service TransactionSync {
+  rpc SyncTransactions(stream SyncRequest) returns (stream SyncResponse);
+}
+
+message SyncRequest {
+  string device_id = 1;
+  SyncMetadata metadata = 2;
+  repeated Transaction transactions = 3;
+}
+
+message SyncResponse {
+  bool server_ack = 1;
+  string conflict_resolution_instructions = 2;
+  SyncMetadata server_state = 3;
+  repeated Transaction accepted_transactions = 4;
+  repeated Transaction rejected_transactions = 5;
+}

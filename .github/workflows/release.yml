@@ -1,0 +1,121 @@
+# ==============================================================================
+# Release Workflow — Builds APK + Shadow JAR on tagged releases
+# ==============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "21"
+  JAVA_DISTRIBUTION: "temurin"
+
+jobs:
+  # ── Backend — Build Shadow JAR ──────────────────────────────────
+  build-backend:
+    name: Backend — Shadow JAR
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-bk-${{ hashFiles('backend/**/*.gradle.kts', 'backend/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-bk-
+
+      - name: Build Shadow JAR
+        run: ./gradlew --no-daemon shadowJar
+
+      - name: Upload Shadow JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: taut-backend-shadowjar
+          path: backend/build/libs/*.jar
+          retention-days: 90
+
+  # ── Android — Build Debug APK ───────────────────────────────────
+  build-android:
+    name: Android — Build APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: gradle
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-android-${{ hashFiles('android/**/*.gradle', 'android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-android-
+
+      - name: Build Debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: taut-android-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 90
+
+  # ── Release — Create GitHub Release with all assets ─────────────
+  create-release:
+    name: Create GitHub Release
+    needs: [build-backend, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: List downloaded artifacts
+        run: ls -lhR taut-backend-shadowjar/ taut-android-apk/
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            taut-backend-shadowjar/*.jar
+            taut-android-apk/*.apk
+          generate_release_notes: true
+          make_latest: true

@@ -1,0 +1,89 @@
+# ============================================================
+# Docker Compose — TAUT full stack (Project Root)
+# For production use:   docker compose -f docker/docker-compose.yml up -d
+# This root file is a convenience alias pointing to prod config.
+# ============================================================
+
+services:
+  # ── PostgreSQL 16 ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taut-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taut
+      POSTGRES_USER: ${TAUT_DB_USER:-taut}
+      POSTGRES_PASSWORD: ${TAUT_DB_PASSWORD:-taut}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TAUT_DB_USER:-taut} -d taut"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 (queue / cache) ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: taut-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${TAUT_REDIS_PASSWORD:-taut}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${TAUT_REDIS_PASSWORD:-taut}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── TAUT Backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: taut-backend
+    restart: unless-stopped
+    environment:
+      TAUT_HOST: "0.0.0.0"
+      TAUT_PORT: "${TAUT_PORT:-8080}"
+      TAUT_DB_URL: "jdbc:postgresql://postgres:5432/taut"
+      TAUT_DB_USER: "${TAUT_DB_USER:-taut}"
+      TAUT_DB_PASSWORD: "${TAUT_DB_PASSWORD:-taut}"
+      TAUT_JWT_SECRET: "${TAUT_JWT_SECRET}"
+      TAUT_JWT_ACCESS_EXPIRY: "${TAUT_JWT_ACCESS_EXPIRY:-900}"
+      TAUT_JWT_REFRESH_EXPIRY: "${TAUT_JWT_REFRESH_EXPIRY:-2592000}"
+      TAUT_JWT_ISSUER: "${TAUT_JWT_ISSUER:-taut}"
+      TAUT_JWT_AUDIENCE: "${TAUT_JWT_AUDIENCE:-taut-api}"
+      TAUT_BCRYPT_COST: "${TAUT_BCRYPT_COST:-12}"
+      TAUT_CORS_ORIGIN: "${TAUT_CORS_ORIGIN:-*}"
+      TAUT_REDIS_URL: "redis://:${TAUT_REDIS_PASSWORD:-taut}@redis:6379"
+      TAUT_LOG_LEVEL: "${TAUT_LOG_LEVEL:-INFO}"
+    ports:
+      - "${TAUT_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata:
+  redis-data:
